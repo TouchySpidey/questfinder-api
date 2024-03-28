@@ -13,6 +13,7 @@ module.exports = (server) => {
         });
         socketIo.on('connection', async (socket) => {
             const userData = await global.authenticators.tokenVerifier(socket.handshake.query.token);
+            if (!userData) return socket.disconnect(true);
             const { UID: userUID } = userData;
 
             socket.on('disconnect', () => {
