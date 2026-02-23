@@ -1,4 +1,4 @@
-const { statuses, messageToDB } = global.projectUtils.questfinder;
+const { statuses, messageToDB, getOneshotByUID } = global.projectUtils.questfinder;
 
 module.exports.join = (req, res) => { interact(statuses.PENDING, req, res); }
 
@@ -19,11 +19,10 @@ async function interact(toStatus, req, res) {
         const { oneshotUID } = req.params;
         let userUID;
         let targetUser;
-        const [oneshotRows] = await global.db.execute(`SELECT * FROM qf_oneshots WHERE UID = ?`, [oneshotUID]);
-        if (oneshotRows.length === 0) {
+        const oneshot = await getOneshotByUID(oneshotUID);
+        if (!oneshot) {
             return res.status(404).send("Oneshot not found");
         }
-        const oneshot = oneshotRows[0];
         switch (toStatus) {
             case statuses.ACCEPTED: case statuses.REJECTED: case statuses.KICKED:
                 // le azioni del master richiedono che il master sia autenticato e l'utente passivo è specificato

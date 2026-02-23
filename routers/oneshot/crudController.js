@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const moment = require('moment');
-const { statuses, validateQuery, search, listOneshots, messageToDB, listMessages, lastViewForChat } = global.projectUtils.questfinder;
+const { statuses, validateQuery, search, listOneshots, messageToDB, listMessages, lastViewForChat, getOneshotByUID } = global.projectUtils.questfinder;
 const nodemailer = require('nodemailer');
 
 module.exports.post = async (req, res) => {
@@ -57,11 +57,10 @@ module.exports.view = async (req, res) => {
     try {
         const { user } = req;
         const oneshotUID = req.params.UID;
-        const [oneshotRow] = await global.db.execute('SELECT * FROM qf_oneshots WHERE UID = ?', [oneshotUID]);
-        if (oneshotRow.length === 0) {
+        const oneshot = await getOneshotByUID(oneshotUID);
+        if (!oneshot) {
             return res.status(404).send("Oneshot not found");
         }
-        const oneshot = oneshotRow[0];
         const [masterRow] = await global.db.execute('SELECT UID, nickname, bio, signedUpOn FROM users WHERE UID = ?', [oneshot.masterUID]);
         if (masterRow.length === 0) {
             return res.status(404).send("Master not found");
@@ -112,11 +111,10 @@ module.exports.delete = async (req, res) => {
     try {
         const oneshotUID = req.params.UID;  // Assuming the UID is passed as a URL parameter
         const { user } = req;
-        const [oneshotRow] = await global.db.execute('SELECT * FROM qf_oneshots WHERE UID = ?', [oneshotUID]);
-        if (oneshotRow.length === 0) {
+        const oneshot = await getOneshotByUID(oneshotUID);
+        if (!oneshot) {
             return res.status(404).send("Oneshot not found");
         }
-        const oneshot = oneshotRow[0];
         if (oneshot.isDeleted) {
             return res.status(200).send("Oneshot already deleted");
         }
@@ -135,11 +133,10 @@ module.exports.delete = async (req, res) => {
 module.exports.edit = async (req, res) => {
     try {
         const oneshotUID = req.params.UID;
-        const [oneshotRow] = await global.db.execute('SELECT * FROM qf_oneshots WHERE UID = ? AND isDeleted = 0', [oneshotUID]);
-        if (oneshotRow.length === 0) {
+        const oneshot = await getOneshotByUID(oneshotUID, false);
+        if (!oneshot) {
             return res.status(404).send("Oneshot not found");
         }
-        const oneshot = oneshotRow[0];
         const { user } = req;
         if (oneshot.masterUID !== user.UID) {
             return res.status(403).send("Permission denied");

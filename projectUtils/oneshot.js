@@ -161,3 +161,9 @@ module.exports.getUsersInOneshot = async (oneshotUID) => {
     });
     return users.concat(master);
 }
+
+module.exports.getOneshotByUID = async (oneshotUID, includeDeleted = true) => {
+    const whereClause = includeDeleted ? 'WHERE UID = ?' : 'WHERE UID = ? AND isDeleted = 0';
+    const [oneshotRow] = await global.db.execute(`SELECT * FROM qf_oneshots ${whereClause}`, [oneshotUID]);
+    return oneshotRow.length > 0 ? oneshotRow[0] : null;
+}

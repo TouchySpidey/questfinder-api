@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { validateQuery, search } = global.projectUtils.questfinder;
+const { validateQuery, search, getOneshotByUID } = global.projectUtils.questfinder;
 
 router.get('/oneshot/search', async (req, res) => {
     try {
@@ -21,11 +21,10 @@ router.get('/oneshot/search', async (req, res) => {
 router.get('/oneshot/:UID', async (req, res) => {
     try {
         const oneshotUID = req.params.UID;
-        const [oneshotRow] = await global.db.execute('SELECT * FROM qf_oneshots WHERE UID = ?', [oneshotUID]);
-        if (oneshotRow.length === 0) {
+        const oneshot = await getOneshotByUID(oneshotUID);
+        if (!oneshot) {
             return res.status(404).send("Oneshot not found");
         }
-        const oneshot = oneshotRow[0];
         const [masterRow] = await global.db.execute('SELECT UID, nickname, bio, signedUpOn FROM users WHERE UID = ?', [oneshot.masterUID]);
         if (masterRow.length === 0) {
             return res.status(404).send("Master not found");
