@@ -26,6 +26,35 @@ const connectToDB = async () => {
         const pool = mysql.createPool(dbConfig);
         global._db = pool;
         global.db = pool.promise();
+
+        const originalExecute = global.db.execute.bind(global.db);
+
+        global.db.execute = async function (...args) {
+            let retries = 3;
+
+            while (retries--) {
+                try {
+                    return await originalExecute(...args);
+                } catch (err) {
+                    console.error('DB execute error:', err.code || err.message);
+
+                    if (
+                        err.code === 'PROTOCOL_CONNECTION_LOST' ||
+                        err.code === 'ECONNRESET' ||
+                        err.code === 'ECONNREFUSED'
+                    ) {
+                        console.log('Retrying DB connection...');
+                        await sleep(5000);
+                        continue;
+                    }
+
+                    throw err;
+                }
+            }
+
+            throw new Error('DB non raggiungibile dopo retry');
+        };
+
         await global.db.execute('SELECT 1');
         console.log('Database connection established');
     } catch (error) {
